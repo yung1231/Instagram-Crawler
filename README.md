@@ -23,3 +23,5 @@ pip install -r requirements.txt
    ```
 2. Run `main.py`.
 3. Enter your `username` and `password` to login.
+4. Alternatively, you can use `cookies` for login. If it's your first time using the program, you will need to login with your username and password. Afterwards, you can use cookies to login directly.
+   - Note: If you encounter any issues with your cookies, please delete the `cookies.json` file and re-capture the cookies.
