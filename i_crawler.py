@@ -4,18 +4,20 @@ import requests
 from selenium.webdriver.common.by import By
 import concurrent.futures
 import getpass
+import json
 
 class ICrawler:
   def __init__(self, usernames, driver):
     print(f'\n\033[32;1m[+] Start Instagram Crawler\033[0m')
     self.usernames = usernames
     self.driver = driver
+    self.url = 'https://www.instagram.com/' 
+    self.cookies = './cookies.json'
     
 
   def login(self):
     print(f'\n\033[32;1m[+] Login\033[0m')
-    url = 'https://www.instagram.com/'  
-    self.driver.get(url) 
+    self.driver.get(self.url) 
     time.sleep(5)
 
     username_input = self.driver.find_elements(By.NAME, 'username')[0]
@@ -34,12 +36,15 @@ class ICrawler:
 
     store_click = self.driver.find_elements(By.XPATH, "//div[@role='button']")[0]
     store_click.click()
-    time.sleep(5)  
+    print(f'\n\033[35;1m[~] Waiting......\033[0m')
+    time.sleep(10)  
+
+    self.getCookie()
 
 
   def getImgUrls(self, username):
-    url = f'https://instagram.com/{username}/'
-    self.driver.get(url) 
+    # url = f'https://instagram.com/{username}/'
+    self.driver.get('{}{}/'.format(self.url, username)) 
     time.sleep(5)    
     img_urls = set()
     pre_article_style = ""
@@ -112,10 +117,31 @@ class ICrawler:
           # print(f'\033[31;1mDownload failed: {e}\033[0m')
           fail_cnt+=1
     print()
-    print('#Download Success: ', total_size - fail_cnt)
-    print('#Download Fail: ', fail_cnt)
+    print(f'#Download Success: {total_size - fail_cnt} | #Download Fail: {fail_cnt} |')
     print(f'\n\033[32;1m[+] Finish\033[0m')
   
+  def getCookie(self):
+    print(f'\n\033[34;1m[~] Get Cookies\033[0m')
+    cookie_items = self.driver.get_cookies()
+    cookies = dict()
+    for idx, item_cookie in enumerate(cookie_items):
+      print(f'{idx}: {item_cookie}')
+      cookies[item_cookie["name"]] = item_cookie["value"]
+    with open(self.cookies, 'w') as f:
+      json.dump(cookies, f)
+    print('cookies:', cookies)
+
+  def loadCookie(self):
+    print(f'\n\033[32;1m[+] Load Cookies\033[0m')
+    self.driver.get(self.url) 
+    time.sleep(5)
+    self.driver.delete_all_cookies()
+    with open(self.cookies, 'r') as f:
+      cookies = json.load(f)
+    for k, v in cookies.items():
+      cookie = {'name':k, 'value':v}
+      self.driver.add_cookie(cookie)
+
   def run(self, username):
     img_urls = self.getImgUrls(username)
     # input("Press enter to close the browser...")
@@ -124,11 +150,18 @@ class ICrawler:
 
 
   def startSearch(self):
-    print(f'\n\033[32;1m[+] Start Search\033[0m')
-    self.login()
+    print(f'\n\033[32;1m[+] Init\033[0m')
 
+    if not os.path.exists(self.cookies):
+      print(f'\n\033[34;1m[~] {self.cookies} not exists, please login \033[0m')
+      self.login()
+    else:
+      print(f'\n\033[34;1m[~] {self.cookies} exists \033[0m')
+      self.loadCookie()
+
+    print(f'\n\033[32;1m[+] Start Search\033[0m')
     for username in self.usernames:
-      print(f'\n\033[32;1m[+] Processing: {username}\033[0m')
+      print(f'\n\033[34;1m[~] Processing: {username}\033[0m')
       self.run(username)
 
     self.driver.quit()
